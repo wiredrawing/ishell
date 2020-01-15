@@ -76,7 +76,7 @@ func main() {
 	var lang *string = nil;
 
 	// 実行環境を取得
-	environment = flag.String("e", "", "Need to input environment to execute this app.")
+	environment = flag.String("e", "development", "Need to input environment to execute this app.")
 	lang = flag.String("lang" , "", "Need to input language to execute this app.")
 	flag.Parse()
 	__command__ = *lang;
@@ -341,7 +341,7 @@ func main() {
 			multiple = 0
 			*input += " print('\r\n');\r\n "
 		} else {
-			if *environment == "development" {
+			if *environment != "production" {
 				_, err = tempFunction(ff, tentativeFile, count, true, &mem, *environment)
 			}
 
@@ -478,7 +478,7 @@ func tempFunction(fp *os.File, filePath *string, beforeOffset int, errorCheck bo
 	stdout = nil
 	scanText = nil
 	echo("\r\n")
-	if environment == "development" {
+	if environment != "production" {
 		// 使用したメモリログを出力
 		runtime.ReadMemStats(mem)
 		fmt.Printf("(1)Alloc:%d, (2)TotalAlloc:%d, (3)Sys:%d, (4)HeapAlloc:%d, (5)HeapSys:%d, (6)HeapReleased:%d\r\n",
