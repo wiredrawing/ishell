@@ -1,0 +1,3 @@
+[submodule "liner"]
+	path = liner
+	url = git@github.com:peterh/liner.git
