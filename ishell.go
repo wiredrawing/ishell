@@ -12,7 +12,7 @@ import (
 	exe "os/exec"
 	"os/signal"
 	"path/filepath"
-	"phpi/standardInput"
+	"ishell/standardInput"
 	_ "reflect"
 	_ "regexp"
 	"runtime"
@@ -23,12 +23,12 @@ import (
 	_ "time"
 
 	// 自作パッケージ
-	. "phpi/echo"
-	"phpi/goroutine"
-	_ "phpi/myreflect"
+	. "ishell/echo"
+	"ishell/goroutine"
+	_ "ishell/myreflect"
 
 	// syscallライブラリの代替ツール
-	"phpi/liner"
+	"ishell/liner"
 
 	_ "golang.org/x/sys/unix"
 	"golang.org/x/sys/windows"

@@ -3,7 +3,7 @@ package standardInput
 
 import (
 	"os"
-	"phpi/echo"
+	"ishell/echo"
 )
 
 // 表示入力を実行する関数オブジェクトのみを保持する
