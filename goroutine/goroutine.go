@@ -3,7 +3,7 @@ package goroutine
 
 import (
 	"os"
-	. "phpi/echo"
+	. "ishell/echo"
 	"runtime"
 	"runtime/debug"
 	"syscall"
