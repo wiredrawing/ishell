@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"ishell/standardInput"
 	"os"
 	exe "os/exec"
 	"os/signal"
 	"path/filepath"
-	"ishell/standardInput"
 	_ "reflect"
 	_ "regexp"
 	"runtime"
@@ -35,10 +35,11 @@ import (
 )
 
 var (
-	history_fn = filepath.Join(os.TempDir(), ".liner_example_history")
+	historyFn = filepath.Join(os.TempDir(), ".liner_example_history")
 )
 
 var __command__ string = "ruby"
+
 func main() {
 
 	// 標準出力への書き出しをつかいecho関数を定義
@@ -63,7 +64,7 @@ func main() {
 	}
 	_readline := liner.NewLiner()
 	defer _readline.Close()
-	if f, err := os.Open(history_fn); err == nil {
+	if f, err := os.Open(historyFn); err == nil {
 		_readline.ReadHistory(f)
 		f.Close()
 	}
@@ -72,21 +73,44 @@ func main() {
 	// コマンド実行時のコマンドライン引数を取得する
 	// $ phpi development とした場合、メモリのデバッグ情報を出力させる
 	////////////////////////////////////////////////////////////////////////
-	var environment *string = nil;
-	var lang *string = nil;
+	var environment *string = nil
+	var lang *string = nil
 
 	// 実行環境を取得
 	environment = flag.String("e", "development", "Need to input environment to execute this app.")
-	lang = flag.String("lang" , "", "Need to input language to execute this app.")
+	lang = flag.String("lang", "", "Need to input language to execute this app.")
 	flag.Parse()
-	__command__ = *lang;
+
+	var arguments []string = flag.Args()
+
+	// CLIで使用するプログラミング言語
+	if len(*lang) > 0 {
+		// 引数を明示的に指定した場合
+		__command__ = *lang
+	} else {
+		if len(arguments) > 0 {
+			__command__ = arguments[0]
+		} else {
+			echo("実行環境および実行言語を指定してください")
+			process.Kill()
+		}
+	}
+
+	if len(*environment) == 0 {
+		if len(arguments) == 2 {
+			*environment = "production"
+		} else {
+			echo("実行環境および実行言語を指定してください")
+			process.Kill()
+		}
+	}
 
 	// 実行するPHPスクリプトの初期化を行う　※バックティックでヒアドキュメント
-	var initializer = "";
-	if (__command__ == "php") {
+	var initializer = ""
+	if __command__ == "php" {
 		initializer = "<?php \r\n" +
-		"ini_set(\"display_errors\", 1);\r\n" +
-		"ini_set(\"error_reporting\", -1);\r\n"
+			"ini_set(\"display_errors\", 1);\r\n" +
+			"ini_set(\"error_reporting\", -1);\r\n"
 	}
 	////////////////////////////////////////////////////////////////////////
 	// phpコマンドが実行可能かどうかを検証
@@ -101,19 +125,20 @@ func main() {
 	var command *exe.Cmd = exe.Command(c, __command__)
 	err = command.Run()
 	if err != nil {
-		_, _ = echo("Could not execute the command" + " " +  __command__  +  " " + "!")
+		_, _ = echo("Could not execute the command" + " " + __command__ + " " + "!")
 		_, _ = echo(err)
 		process.Kill()
 	} else {
 		var p *os.ProcessState = command.ProcessState
 		if p.Success() != true {
-			_, _ = echo("Could not execute the command" + __command__  + "!")
+			_, _ = echo("Could not execute the command" + __command__ + "!")
 			process.Kill()
 		}
 	}
 
 	// recoverの処理
 	defer func() {
+		fmt.Println("Goroutineの実行")
 		var i interface{}
 		i = recover()
 		if i != nil {
@@ -240,7 +265,7 @@ func main() {
 		} else {
 			prompt = " " + __command__ + " > "
 		}
-		line = new(string);
+		line = new(string)
 
 		// 標準入力開始
 		if *notice != -1 {
@@ -378,18 +403,18 @@ func SyntaxCheckUsingWaitGroup(filePath *string, exitedStatus *int) (bool, error
 	// command.ProcessState.Sys()は interface{}を返却する
 	waitStatus, ok = command.ProcessState.Sys().(syscall.WaitStatus)
 	// 型アサーション成功時
-    pid = nil;
+	pid = nil
 	if ok == true {
 		*exitedStatus = waitStatus.ExitStatus()
 		var ps *os.ProcessState
 		ps = command.ProcessState
 		if ps.Success() {
 			// コマンド成功時
-			return true, nil;
+			return true, nil
 		}
-        return false, e;
+		return false, e
 	}
-	return false, e;
+	return false, e
 }
 
 func tempFunction(fp *os.File, filePath *string, beforeOffset int, errorCheck bool, mem *runtime.MemStats, environment string) (int, error) {
@@ -413,7 +438,7 @@ func tempFunction(fp *os.File, filePath *string, beforeOffset int, errorCheck bo
 			code = command.ProcessState.Success()
 			if code != true {
 				command = exe.Command(__command__, *filePath)
-				stdout, _ := command.StderrPipe ();
+				stdout, _ := command.StderrPipe()
 				command.Start()
 				scanner := bufio.NewScanner(stdout)
 				ii = 0
@@ -428,7 +453,7 @@ func tempFunction(fp *os.File, filePath *string, beforeOffset int, errorCheck bo
 				}
 				if beforeOffset > ii {
 					command = exe.Command(__command__, *filePath)
-					stdout, _ := command.StderrPipe ();
+					stdout, _ := command.StderrPipe()
 					command.Start()
 					scanner = bufio.NewScanner(stdout)
 					for scanner.Scan() {
@@ -440,8 +465,8 @@ func tempFunction(fp *os.File, filePath *string, beforeOffset int, errorCheck bo
 				}
 				command.Wait()
 				echo("\r\n")
-                scanText = nil;
-				command = nil;
+				scanText = nil
+				command = nil
 				stdout = nil
 				return beforeOffset, e
 			}
@@ -471,7 +496,7 @@ func tempFunction(fp *os.File, filePath *string, beforeOffset int, errorCheck bo
 		} else {
 			break
 		}
-		*scanText = "";
+		*scanText = ""
 	}
 	command.Wait()
 	command = nil
