@@ -40,10 +40,10 @@ var (
 
 var __command__ string = "ruby"
 
-func main() {
+// 標準出力への書き出しをつかいecho関数を定義
+var echo func(interface{}) (int, error) = Echo()
 
-	// 標準出力への書き出しをつかいecho関数を定義
-	var echo func(interface{}) (int, error) = Echo()
+func main() {
 
 	// 汎用的errorオブジェクト
 	var err error
@@ -244,9 +244,9 @@ func main() {
 		process.Kill()
 	}
 
-	var count int
-	var multiple int
-	var currentDir string
+	var count int = 0
+	var multiple int = 0
+	var currentDir string = ""
 
 	// saveコマンド入力用
 	var saveFp *os.File
@@ -354,7 +354,7 @@ func main() {
 			continue
 		}
 
-		commonBool, err = SyntaxCheckUsingWaitGroup(tentativeFile, &exitCode)
+		commonBool, err = syntaxCheckUsingWaitGroup(tentativeFile, &exitCode)
 		if commonBool == true {
 			line = nil
 			fixedInput = *input + " print('\r\n');"
@@ -364,6 +364,8 @@ func main() {
 				continue
 			}
 			multiple = 0
+			os.Truncate(*tentativeFile, 0)
+			ff.WriteAt([]byte(*input), 0)
 			*input += " print('\r\n');\r\n "
 		} else {
 			if *environment != "production" {
@@ -373,9 +375,12 @@ func main() {
 			multiple = 1
 		}
 	}
+
+	// main 関数の終了
+	return
 }
 
-// SyntaxCheckUsingWaitGroup WaitGroupオブジェクトを使ったバージョン
+// syntaxCheckUsingWaitGroup WaitGroupオブジェクトを使ったバージョン
 /**
  * @param string filePath
  * @param *sync.WaitGroup w
@@ -383,7 +388,9 @@ func main() {
  *
  * @return bool, error
  */
-func SyntaxCheckUsingWaitGroup(filePath *string, exitedStatus *int) (bool, error) {
+var pid *int = new(int)
+
+func syntaxCheckUsingWaitGroup(filePath *string, exitedStatus *int) (bool, error) {
 	// 当該関数の返却用のErrorオブジェクトを生成
 	var e *goroutine.MyErrorJustThisProject
 	e = new(goroutine.MyErrorJustThisProject)
@@ -391,15 +398,14 @@ func SyntaxCheckUsingWaitGroup(filePath *string, exitedStatus *int) (bool, error
 	var command *exe.Cmd
 	var waitStatus syscall.WaitStatus
 	var ok bool
-	var pid *int = new(int)
 	// 標準出力への書き出しをつかいecho関数を定義
-	var echo func(interface{}) (int, error) = Echo()
+	// var echo func(interface{}) (int, error) = Echo()
 	// バックグラウンドでPHPをコマンドラインで実行
 	command = exe.Command(__command__, *filePath)
 	command.Run()
 	*pid = command.Process.Pid
 	// 実行したコマンドのプロセスID
-	echo("[Pid]: " + strconv.Itoa(*pid) + "\r\n")
+	// echo("[Pid]: " + strconv.Itoa(*pid) + "\r\n")
 	// command.ProcessState.Sys()は interface{}を返却する
 	waitStatus, ok = command.ProcessState.Sys().(syscall.WaitStatus)
 	// 型アサーション成功時
@@ -412,7 +418,6 @@ func SyntaxCheckUsingWaitGroup(filePath *string, exitedStatus *int) (bool, error
 			// コマンド成功時
 			return true, nil
 		}
-		return false, e
 	}
 	return false, e
 }
