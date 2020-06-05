@@ -30,7 +30,7 @@ import (
 	// syscallライブラリの代替ツール
 	"ishell/liner"
 
-	"golang.org/x/sys/windows"
+	"golang.org/x/sys/unix"
 	_ "golang.org/x/sys/windows"
 )
 
@@ -173,27 +173,27 @@ func main() {
 	var signal_chan chan os.Signal = make(chan os.Signal)
 	// OSによってシグナルのパッケージを変更
 	signal.Notify(
-		// signal_chan,
-		// os.Interrupt,
-		// os.Kill,
-		// unix.SIGKILL,
-		// unix.SIGHUP,
-		// unix.SIGINT,
-		// unix.SIGTERM,
-		// unix.SIGQUIT,
-		// unix.SIGTSTP,
-		// unix.Signal(0x13),
-		// unix.Signal(0x14), // Windowsの場合 SIGTSTPを認識しないためリテラルで指定する
 		signal_chan,
 		os.Interrupt,
 		os.Kill,
-		windows.SIGKILL,
-		windows.SIGHUP,
-		windows.SIGINT,
-		windows.SIGTERM,
-		windows.SIGQUIT,
-		windows.Signal(0x13),
-		windows.Signal(0x14), // Windowsの場合 SIGTSTPを認識しないためリテラルで指定する
+		unix.SIGKILL,
+		unix.SIGHUP,
+		unix.SIGINT,
+		unix.SIGTERM,
+		unix.SIGQUIT,
+		unix.SIGTSTP,
+		unix.Signal(0x13),
+		unix.Signal(0x14), // Windowsの場合 SIGTSTPを認識しないためリテラルで指定する
+		// signal_chan,
+		// os.Interrupt,
+		// os.Kill,
+		// windows.SIGKILL,
+		// windows.SIGHUP,
+		// windows.SIGINT,
+		// windows.SIGTERM,
+		// windows.SIGQUIT,
+		// windows.Signal(0x13),
+		// windows.Signal(0x14), // Windowsの場合 SIGTSTPを認識しないためリテラルで指定する
 	)
 
 	// command line へ通知するための変数
@@ -404,12 +404,12 @@ func syntaxCheckUsingWaitGroup(filePath *string, exitedStatus *int) (bool, error
 	command = exe.Command(__command__, *filePath)
 	command.Run()
 	*pid = command.Process.Pid
+	fmt.Println(*pid)
 	// 実行したコマンドのプロセスID
 	// echo("[Pid]: " + strconv.Itoa(*pid) + "\r\n")
 	// command.ProcessState.Sys()は interface{}を返却する
 	waitStatus, ok = command.ProcessState.Sys().(syscall.WaitStatus)
 	// 型アサーション成功時
-	pid = nil
 	if ok == true {
 		*exitedStatus = waitStatus.ExitStatus()
 		var ps *os.ProcessState

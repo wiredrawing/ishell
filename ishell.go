@@ -404,12 +404,12 @@ func syntaxCheckUsingWaitGroup(filePath *string, exitedStatus *int) (bool, error
 	command = exe.Command(__command__, *filePath)
 	command.Run()
 	*pid = command.Process.Pid
+	fmt.Println(*pid)
 	// 実行したコマンドのプロセスID
 	// echo("[Pid]: " + strconv.Itoa(*pid) + "\r\n")
 	// command.ProcessState.Sys()は interface{}を返却する
 	waitStatus, ok = command.ProcessState.Sys().(syscall.WaitStatus)
 	// 型アサーション成功時
-	pid = nil
 	if ok == true {
 		*exitedStatus = waitStatus.ExitStatus()
 		var ps *os.ProcessState
