@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"ishell/standardInput"
 	"os"
 	exe "os/exec"
 	"os/signal"
 	"path/filepath"
-	"phpi/standardInput"
 	_ "reflect"
 	_ "regexp"
 	"runtime"
@@ -23,26 +23,27 @@ import (
 	_ "time"
 
 	// 自作パッケージ
-	. "phpi/echo"
-	"phpi/goroutine"
-	_ "phpi/myreflect"
+	. "ishell/echo"
+	"ishell/goroutine"
+	_ "ishell/myreflect"
 
 	// syscallライブラリの代替ツール
-	"phpi/liner"
+	"ishell/liner"
 
-	_ "golang.org/x/sys/unix"
 	"golang.org/x/sys/windows"
+	_ "golang.org/x/sys/windows"
 )
 
 var (
-	history_fn = filepath.Join(os.TempDir(), ".liner_example_history")
+	historyFn = filepath.Join(os.TempDir(), ".liner_example_history")
 )
 
 var __command__ string = "ruby"
-func main() {
 
-	// 標準出力への書き出しをつかいecho関数を定義
-	var echo func(interface{}) (int, error) = Echo()
+// 標準出力への書き出しをつかいecho関数を定義
+var echo func(interface{}) (int, error) = Echo()
+
+func main() {
 
 	// 汎用的errorオブジェクト
 	var err error
@@ -63,7 +64,7 @@ func main() {
 	}
 	_readline := liner.NewLiner()
 	defer _readline.Close()
-	if f, err := os.Open(history_fn); err == nil {
+	if f, err := os.Open(historyFn); err == nil {
 		_readline.ReadHistory(f)
 		f.Close()
 	}
@@ -72,21 +73,44 @@ func main() {
 	// コマンド実行時のコマンドライン引数を取得する
 	// $ phpi development とした場合、メモリのデバッグ情報を出力させる
 	////////////////////////////////////////////////////////////////////////
-	var environment *string = nil;
-	var lang *string = nil;
+	var environment *string = nil
+	var lang *string = nil
 
 	// 実行環境を取得
 	environment = flag.String("e", "development", "Need to input environment to execute this app.")
-	lang = flag.String("lang" , "", "Need to input language to execute this app.")
+	lang = flag.String("lang", "", "Need to input language to execute this app.")
 	flag.Parse()
-	__command__ = *lang;
+
+	var arguments []string = flag.Args()
+
+	// CLIで使用するプログラミング言語
+	if len(*lang) > 0 {
+		// 引数を明示的に指定した場合
+		__command__ = *lang
+	} else {
+		if len(arguments) > 0 {
+			__command__ = arguments[0]
+		} else {
+			echo("実行環境および実行言語を指定してください")
+			process.Kill()
+		}
+	}
+
+	if len(*environment) == 0 {
+		if len(arguments) == 2 {
+			*environment = "production"
+		} else {
+			echo("実行環境および実行言語を指定してください")
+			process.Kill()
+		}
+	}
 
 	// 実行するPHPスクリプトの初期化を行う　※バックティックでヒアドキュメント
-	var initializer = "";
-	if (__command__ == "php") {
+	var initializer = ""
+	if __command__ == "php" {
 		initializer = "<?php \r\n" +
-		"ini_set(\"display_errors\", 1);\r\n" +
-		"ini_set(\"error_reporting\", -1);\r\n"
+			"ini_set(\"display_errors\", 1);\r\n" +
+			"ini_set(\"error_reporting\", -1);\r\n"
 	}
 	////////////////////////////////////////////////////////////////////////
 	// phpコマンドが実行可能かどうかを検証
@@ -101,19 +125,20 @@ func main() {
 	var command *exe.Cmd = exe.Command(c, __command__)
 	err = command.Run()
 	if err != nil {
-		_, _ = echo("Could not execute the command" + " " +  __command__  +  " " + "!")
+		_, _ = echo("Could not execute the command" + " " + __command__ + " " + "!")
 		_, _ = echo(err)
 		process.Kill()
 	} else {
 		var p *os.ProcessState = command.ProcessState
 		if p.Success() != true {
-			_, _ = echo("Could not execute the command" + __command__  + "!")
+			_, _ = echo("Could not execute the command" + __command__ + "!")
 			process.Kill()
 		}
 	}
 
 	// recoverの処理
 	defer func() {
+		fmt.Println("Goroutineの実行")
 		var i interface{}
 		i = recover()
 		if i != nil {
@@ -148,27 +173,27 @@ func main() {
 	var signal_chan chan os.Signal = make(chan os.Signal)
 	// OSによってシグナルのパッケージを変更
 	signal.Notify(
-		signal_chan,
-		os.Interrupt,
-		os.Kill,
-		unix.SIGKILL,
-		unix.SIGHUP,
-		unix.SIGINT,
-		unix.SIGTERM,
-		unix.SIGQUIT,
-		unix.SIGTSTP,
-		unix.Signal(0x13),
-		unix.Signal(0x14), // Windowsの場合 SIGTSTPを認識しないためリテラルで指定する
 		// signal_chan,
 		// os.Interrupt,
 		// os.Kill,
-		// windows.SIGKILL,
-		// windows.SIGHUP,
-		// windows.SIGINT,
-		// windows.SIGTERM,
-		// windows.SIGQUIT,
-		// windows.Signal(0x13),
-		// windows.Signal(0x14), // Windowsの場合 SIGTSTPを認識しないためリテラルで指定する
+		// unix.SIGKILL,
+		// unix.SIGHUP,
+		// unix.SIGINT,
+		// unix.SIGTERM,
+		// unix.SIGQUIT,
+		// unix.SIGTSTP,
+		// unix.Signal(0x13),
+		// unix.Signal(0x14), // Windowsの場合 SIGTSTPを認識しないためリテラルで指定する
+		signal_chan,
+		os.Interrupt,
+		os.Kill,
+		windows.SIGKILL,
+		windows.SIGHUP,
+		windows.SIGINT,
+		windows.SIGTERM,
+		windows.SIGQUIT,
+		windows.Signal(0x13),
+		windows.Signal(0x14), // Windowsの場合 SIGTSTPを認識しないためリテラルで指定する
 	)
 
 	// command line へ通知するための変数
@@ -219,9 +244,9 @@ func main() {
 		process.Kill()
 	}
 
-	var count int
-	var multiple int
-	var currentDir string
+	var count int = 0
+	var multiple int = 0
+	var currentDir string = ""
 
 	// saveコマンド入力用
 	var saveFp *os.File
@@ -240,7 +265,7 @@ func main() {
 		} else {
 			prompt = " " + __command__ + " > "
 		}
-		line = new(string);
+		line = new(string)
 
 		// 標準入力開始
 		if *notice != -1 {
@@ -329,7 +354,7 @@ func main() {
 			continue
 		}
 
-		commonBool, err = SyntaxCheckUsingWaitGroup(tentativeFile, &exitCode)
+		commonBool, err = syntaxCheckUsingWaitGroup(tentativeFile, &exitCode)
 		if commonBool == true {
 			line = nil
 			fixedInput = *input + " print('\r\n');"
@@ -339,6 +364,8 @@ func main() {
 				continue
 			}
 			multiple = 0
+			os.Truncate(*tentativeFile, 0)
+			ff.WriteAt([]byte(*input), 0)
 			*input += " print('\r\n');\r\n "
 		} else {
 			if *environment != "production" {
@@ -348,9 +375,12 @@ func main() {
 			multiple = 1
 		}
 	}
+
+	// main 関数の終了
+	return
 }
 
-// SyntaxCheckUsingWaitGroup WaitGroupオブジェクトを使ったバージョン
+// syntaxCheckUsingWaitGroup WaitGroupオブジェクトを使ったバージョン
 /**
  * @param string filePath
  * @param *sync.WaitGroup w
@@ -358,7 +388,9 @@ func main() {
  *
  * @return bool, error
  */
-func SyntaxCheckUsingWaitGroup(filePath *string, exitedStatus *int) (bool, error) {
+var pid *int = new(int)
+
+func syntaxCheckUsingWaitGroup(filePath *string, exitedStatus *int) (bool, error) {
 	// 当該関数の返却用のErrorオブジェクトを生成
 	var e *goroutine.MyErrorJustThisProject
 	e = new(goroutine.MyErrorJustThisProject)
@@ -366,30 +398,28 @@ func SyntaxCheckUsingWaitGroup(filePath *string, exitedStatus *int) (bool, error
 	var command *exe.Cmd
 	var waitStatus syscall.WaitStatus
 	var ok bool
-	var pid *int = new(int)
 	// 標準出力への書き出しをつかいecho関数を定義
-	var echo func(interface{}) (int, error) = Echo()
+	// var echo func(interface{}) (int, error) = Echo()
 	// バックグラウンドでPHPをコマンドラインで実行
 	command = exe.Command(__command__, *filePath)
 	command.Run()
 	*pid = command.Process.Pid
 	// 実行したコマンドのプロセスID
-	echo("[Pid]: " + strconv.Itoa(*pid) + "\r\n")
+	// echo("[Pid]: " + strconv.Itoa(*pid) + "\r\n")
 	// command.ProcessState.Sys()は interface{}を返却する
 	waitStatus, ok = command.ProcessState.Sys().(syscall.WaitStatus)
 	// 型アサーション成功時
-    pid = nil;
+	pid = nil
 	if ok == true {
 		*exitedStatus = waitStatus.ExitStatus()
 		var ps *os.ProcessState
 		ps = command.ProcessState
 		if ps.Success() {
 			// コマンド成功時
-			return true, nil;
+			return true, nil
 		}
-        return false, e;
 	}
-	return false, e;
+	return false, e
 }
 
 func tempFunction(fp *os.File, filePath *string, beforeOffset int, errorCheck bool, mem *runtime.MemStats, environment string) (int, error) {
@@ -413,7 +443,7 @@ func tempFunction(fp *os.File, filePath *string, beforeOffset int, errorCheck bo
 			code = command.ProcessState.Success()
 			if code != true {
 				command = exe.Command(__command__, *filePath)
-				stdout, _ := command.StderrPipe ();
+				stdout, _ := command.StderrPipe()
 				command.Start()
 				scanner := bufio.NewScanner(stdout)
 				ii = 0
@@ -428,7 +458,7 @@ func tempFunction(fp *os.File, filePath *string, beforeOffset int, errorCheck bo
 				}
 				if beforeOffset > ii {
 					command = exe.Command(__command__, *filePath)
-					stdout, _ := command.StderrPipe ();
+					stdout, _ := command.StderrPipe()
 					command.Start()
 					scanner = bufio.NewScanner(stdout)
 					for scanner.Scan() {
@@ -440,8 +470,8 @@ func tempFunction(fp *os.File, filePath *string, beforeOffset int, errorCheck bo
 				}
 				command.Wait()
 				echo("\r\n")
-                scanText = nil;
-				command = nil;
+				scanText = nil
+				command = nil
 				stdout = nil
 				return beforeOffset, e
 			}
@@ -471,7 +501,7 @@ func tempFunction(fp *os.File, filePath *string, beforeOffset int, errorCheck bo
 		} else {
 			break
 		}
-		*scanText = "";
+		*scanText = ""
 	}
 	command.Wait()
 	command = nil
